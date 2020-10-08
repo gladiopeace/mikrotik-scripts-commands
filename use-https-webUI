@@ -1,0 +1,10 @@
+#1. Create CA certificate first:
+/certificate add name=ca-cert common-name=ca-cert key-usage=key-cert-sign,crl-sign
+#2. Sign the CA certificate:
+/certificate sign ca-cert
+#3. Now create a regular certificate for HTTPS access:
+/certificate add name=www-ssl-cert common-name=www-ssl-cert
+#4. Sign it with CA from steps 1&2:
+/certificate sign ca=ca-cert www-ssl-cert
+#5. And finally, assign the new certificate to HTTPS service:
+/ip service set www-ssl certificate=www-ssl-cert

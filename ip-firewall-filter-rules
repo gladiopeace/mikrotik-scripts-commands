@@ -1,0 +1,42 @@
+/ip firewall filter
+#Add Syn Flood IP to the list then drop
+add action=add-src-to-address-list address-list=Syn_Flooder address-list-timeout=30m chain=input comment="Add Syn Flood IP to the list then drop" connection-limit=30,32 in-interface=WAN \
+    protocol=tcp tcp-flags=syn
+add action=drop chain=input src-address-list=Syn_Flooder
+
+#Port Scanner Detect
+add action=add-src-to-address-list address-list=Port_Scanner address-list-timeout=1w chain=input comment="Port Scanner Detect" in-interface=WAN protocol=tcp psd=21,3s,3,1
+add action=drop chain=input src-address-list=Port_Scanner
+
+#Add Spammers to the list for 3 hours then drop
+add action=add-src-to-address-list address-list=spammers address-list-timeout=3h chain=forward comment="Add Spammers to the list for 3 hours then drop" connection-limit=30,32 dst-port=25,587 \
+    in-interface=WAN limit=30/1m,0:packet protocol=tcp
+add action=drop chain=forward dst-port=25,587 protocol=tcp src-address-list=spammers
+
+#defconf: drop all from WAN not DSTNATed
+add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface=WAN
+
+#Add Port scanners to list INPUT from WAN
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Port scanners to list INPUT WAN" in-interface=WAN protocol=tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input in-interface=WAN protocol=tcp tcp-flags=fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input in-interface=WAN protocol=tcp tcp-flags=fin,syn
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input in-interface=WAN protocol=tcp tcp-flags=syn,rst
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input in-interface=WAN protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input in-interface=WAN protocol=tcp tcp-flags=fin,syn,rst,psh,ack,urg
+
+#Add Port scanners to list FORWARD WAN
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward comment="Port scanners to list FORWARD WAN" in-interface=WAN protocol=tcp psd=\
+    21,3s,3,1
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward in-interface=WAN protocol=tcp tcp-flags=fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward in-interface=WAN protocol=tcp tcp-flags=fin,syn
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward in-interface=WAN protocol=tcp tcp-flags=syn,rst
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward in-interface=WAN protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=forward in-interface=WAN protocol=tcp tcp-flags=fin,syn,rst,psh,ack,urg
+
+#dropping port scanners
+add action=drop chain=forward comment="dropping port scanners" log=yes log-prefix=port-scanner src-address-list="port scanners"
+add action=drop chain=input log=yes log-prefix=port-scanner src-address-list="port scanners"
+
+#drop invalid
+add action=drop chain=forward comment="drop invalid" connection-state=invalid in-interface-list=!LAN log=yes log-prefix=invalid
+add action=drop chain=input connection-state=invalid in-interface-list=!LAN log=yes log-prefix=invalid
