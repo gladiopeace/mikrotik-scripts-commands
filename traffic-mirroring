@@ -1,0 +1,4 @@
+#due this option is hidden on the WebUI, this command will help to monitor traffic
+#Hardware mirroring is not possible, as the wireless interfaces are not connected to the CPU via the switch chip but directly. But you can use a rule with action=sniff-tzsp in /ip firewall mangle to mirror the frames to an IP address and port TZSP-encapsulated.
+
+interface ethernet switch set switch1 mirror-source=ether3 mirror-target=ether3
